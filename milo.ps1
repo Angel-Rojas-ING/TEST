@@ -13,6 +13,7 @@ function Run-Trusted([String]$command) {
   $base64Command = [Convert]::ToBase64String($bytes)
   sc.exe config TrustedInstaller binPath= "cmd.exe /c powershell.exe -encodedcommand $base64Command" | Out-Null
   sc.exe start TrustedInstaller | Out-Null
+  sc.exe config TrustedInstaller binpath= "`"$DefaultBinPath`"" | Out-Null
   Stop-Service -Name TrustedInstaller -Force -ErrorAction SilentlyContinue
 }
 
