@@ -39,7 +39,6 @@ try {
   Write-Host 'Ejecutando Hello.ps1...'
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\Public\Hello.ps1'
   Write-Host 'Ejecución finalizada.'
-  Remove-Item 'C:\Users\Public\Hello.ps1' -Force -ErrorAction SilentlyContinue
 } catch {
   Write-Host 'Error al descargar o ejecutar Hello.ps1: $_'
 }
